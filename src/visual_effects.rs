@@ -61,7 +61,7 @@ fn animate_damage_text_system(
         let time_alive = current_time - effect_data.spawn_time;
 
         if time_alive > DAMAGE_TEXT_LIFETIME_SECONDS {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn_recursive(); // Use despawn_recursive for safety
             continue;
         }
 

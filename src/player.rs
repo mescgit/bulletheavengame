@@ -1,11 +1,11 @@
 use bevy::{prelude::*, window::PrimaryWindow};
-// Removed unused GameConfig
 use crate::{
     components::{Velocity, Health as ComponentHealth},
     game::AppState, 
     bullet::{spawn_bullet, BasicWeapon, BASE_BULLET_DAMAGE, BASE_BULLET_SPEED},
     enemy::Enemy,
-    weapons::AoeAuraWeapon,
+    weapons::AoeAuraWeapon, // Import new weapon components
+    weapons::OrbitingProjectileWeapon, // Import new weapon components
     audio::{PlaySoundEvent, SoundEffect}, 
 };
 
@@ -37,7 +37,7 @@ pub struct Player {
 
 impl Player {
     pub fn experience_to_next_level(&self) -> u32 {
-        if self.level == 0 { return 0; }
+        if self.level == 0 { return 0; } // Should start at level 1
         if (self.level as usize -1) < XP_FOR_LEVEL.len() {
             XP_FOR_LEVEL[self.level as usize - 1]
         } else {
@@ -51,7 +51,7 @@ impl Player {
         next_state_value: &mut NextState<AppState>,
         sound_event_writer: &mut EventWriter<PlaySoundEvent>, 
     ) {
-        let actual_xp_gained = (amount as f32 * self.xp_gain_multiplier) as u32;
+        let actual_xp_gained = (amount as f32 * self.xp_gain_multiplier).round() as u32;
         self.current_level_xp += actual_xp_gained;
         self.experience += actual_xp_gained;
 
@@ -61,8 +61,10 @@ impl Player {
             self.level += 1;
             sound_event_writer.send(PlaySoundEvent(SoundEffect::LevelUp)); 
             next_state_value.set(AppState::LevelUp);
+            // If multiple level ups occur from one XP gain, only one LevelUp state transition is triggered.
+            // The UI will show the new (highest) level. Subsequent XP gain will check against the new threshold.
             if next_state_value.0 == Some(AppState::LevelUp) {
-                break;
+                break; 
             }
         }
     }
@@ -138,6 +140,7 @@ fn spawn_player(mut commands: Commands, asset_server: Res<AssetServer>) {
             fire_rate: Timer::from_seconds(0.5, TimerMode::Repeating),
         },
         AoeAuraWeapon::default(), 
+        OrbitingProjectileWeapon::default(), // Add new weapon component
         Name::new("Player"),
     ));
 }
@@ -153,9 +156,9 @@ fn player_health_regeneration_system(
     mut query: Query<(&Player, &mut ComponentHealth)>, 
 ) {
     for (player_stats, mut current_health) in query.iter_mut() {
-        if player_stats.health_regen_rate > 0.0 && current_health.0 > 0 {
+        if player_stats.health_regen_rate > 0.0 && current_health.0 > 0 && current_health.0 < player_stats.max_health {
             let regen_amount = player_stats.health_regen_rate * time.delta_seconds();
-            current_health.0 = (current_health.0 as f32 + regen_amount) as i32;
+            current_health.0 = (current_health.0 as f32 + regen_amount).round() as i32;
             current_health.0 = current_health.0.min(player_stats.max_health);
         }
     }

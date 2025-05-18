@@ -1,0 +1,87 @@
+Eldritch Horror Survival: Roadmap
+
+The goal is to transform the current "bullet heaven" into an Eldritch Horror themed game where the player collects powerful items and combines potent skills to survive increasingly bizarre and terrifying threats.
+
+Core Pillars:
+
+    Eldritch Horror Theme: All visuals, audio, enemies, items, and skills will reflect a dark, cosmic horror aesthetic.
+    Item-Based Power (Binding of Isaac Inspired): Players will find and collect items that provide significant passive bonuses, trigger unique effects, or grant/alter skills. Synergies between items will be key.
+    Active Skill System (Path of Exile Inspired): Players will have a small set of active skills they can use, which can be found, upgraded, and potentially modified by items or a "support gem" like system.
+
+Phase 1: Thematic Transformation & Core Systems Foundation
+
+    Goal: Establish the new theme and implement the foundational item and active skill systems.
+    Key Features:
+        Full Thematic Reskin (Art & Sound - User Provided):
+            Player: New sprite (e.g., Cultist, Investigator, Doomed Survivor).
+            Enemies: Initial set of 2-3 eldritch enemy types (e.g., Floating Eyeballs, Skittering Shadowlings, Amorphous Fleshbeast) replacing current ones.
+            Projectiles: Player attacks and enemy projectiles re-themed (e.g., psychic blasts, ichor).
+            Background: New tiling background (e.g., cyclopean ruins, fleshy landscape, void).
+            UI: Minor thematic adjustments to HUD, menus.
+            Audio: New thematic sound effects and background music.
+        Code Renaming & Refactoring:
+            Update names of entities, components, and descriptive text throughout the codebase to match the eldritch horror theme (e.g., BasicWeapon -> GrimoireOfPain, UpgradeCard names).
+        Basic Active Skill System (skills.rs):
+            Player can equip 1-2 active skills initially.
+            Define Skill data structures (ID, name, description, cooldown, effect type e.g., projectile, AoE).
+            Implement 2-3 starter skills (e.g., Eldritch Bolt - single target, Mind Shatter - small AoE cone).
+            Input system to trigger equipped skills.
+        Basic Item System (items.rs):
+            Define Item data structures (ID, name, description, type e.g., passive stat boost, skill grant).
+            Implement 5-7 initial passive items that grant stat bonuses (e.g., +damage, +speed, +max health, +luck).
+            Player can collect items (e.g., rare drops from enemies).
+            System to apply passive item effects to player stats.
+        Upgrade System Integration:
+            Level-up choices can now include:
+                Improving an equipped active skill (e.g., more damage, reduced cooldown).
+                New passive stat boosts (re-themed existing upgrades).
+                Rarely, a new item or a new basic skill.
+
+Phase 2: Expanding Skills, Items, and Enemy Interactions
+
+    Goal: Increase gameplay variety and depth with more skills, items, and more intelligent enemies.
+    Key Features:
+        Advanced Skill System & More Skills:
+            Introduce more active skills (target 5-7 total unique skills).
+            Skills with more varied effects (e.g., summons, traps, buffs/debuffs, channeled abilities).
+            Potentially a simple "mana" or resource system for skills.
+        Skill Modification (Proto-"Support Gems"):
+            Introduce "Glyphs" or "Runes" (items) that can be applied to active skills to modify them (e.g., "Glyph of Chain" - projectile chains, "Rune of Expansion" - increases AoE).
+            Skills have 1-2 "Glyph Slots".
+        Deeper Item System & Synergies:
+            More items (target 15-20+ unique items).
+            Items that trigger effects on certain conditions (on hit, on taking damage, on kill).
+            Items that grant new active skills or significantly alter existing ones.
+            Focus on creating potential item synergies.
+        Enhanced Enemy Behaviors:
+            Current Spitter: Refine its AI (e.g., reposition after firing).
+            New Enemy Types:
+                Teleporting/Blinking Entity: Harder to pin down.
+                Summoner: Spawns weaker minions.
+                Charging Beast: Telegraphs and then rushes the player.
+        Elite Enemies / Mini-Bosses:
+            Stronger versions of existing enemies with more health, damage, and possibly a unique modifier, appearing less frequently or at certain wave thresholds.
+
+Phase 3: Content Richness, Polish, and Long-Term Engagement
+
+    Goal: Make the game feel complete with more content, better feedback, and replayability.
+    Key Features:
+        Dedicated Boss Encounters:
+            Unique boss enemies at significant wave milestones (e.g., every 5-10 minutes or specific wave numbers).
+            Bosses with multiple phases or distinct attack patterns.
+            Guaranteed high-value reward upon defeat (e.g., a choice of rare items or powerful skill upgrades).
+        Extensive Content Expansion:
+            Many more Skills, Items, Glyphs/Runes.
+            More Enemy Types and variations.
+            Different "Floors" or "Realms" (could be different scrolling backgrounds and enemy sets chosen at the start of a run or after a boss).
+        Advanced UI/UX & Visual/Audio Polish:
+            Dedicated screens for viewing collected items, equipped skills, and stats.
+            Clearer visual feedback for all effects, buffs, debuffs.
+            More animations for player, enemies, attacks.
+            More diverse soundscape and adaptive music.
+        Meta-Progression (Optional, for Replayability):
+            Unlock new starting characters with different base stats or initial skills/items.
+            Unlock new items/skills to appear in subsequent runs.
+            A currency earned during runs to spend on permanent global upgrades (e.g., +starting health, +XP gain).
+        Lore & Atmosphere:
+            Item descriptions, enemy names, and environmental details contribute to the eldritch horror theme.

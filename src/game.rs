@@ -6,8 +6,9 @@ use crate::{
     player::Player,
     components::Health,
     upgrades::{UpgradePlugin, UpgradePool, OfferedUpgrades, UpgradeCard, UpgradeType},
-    weapons::{AoeAuraWeapon, OrbitingProjectileWeapon}, // Import OrbitingProjectileWeapon
+    weapons::{AoeAuraWeapon, OrbitingProjectileWeapon},
     audio::{PlaySoundEvent, SoundEffect},
+    debug_menu::DebugMenuPlugin, // This import should now work
 };
 
 pub const SCREEN_WIDTH: f32 = 1280.0;
@@ -28,6 +29,7 @@ pub enum AppState {
     InGame,
     LevelUp,
     GameOver,
+    DebugUpgradeMenu, 
 }
 
 #[derive(Resource)]
@@ -96,21 +98,20 @@ struct TimerText;
 struct WaveText;
 
 fn reset_for_new_game_session(
-    game_state: ResMut<GameState>, 
+    mut game_state: ResMut<GameState>, // Binding `game_state` itself doesn't need to be mut here
     mut enemy_spawn_timer: ResMut<EnemySpawnTimer>,
     mut max_enemies: ResMut<MaxEnemies>,
-    // Query for all player components that need resetting
     mut player_query: Query<(&mut Player, &mut Health, &mut BasicWeapon, &mut AoeAuraWeapon, &mut OrbitingProjectileWeapon)>,
 ) {
-    let mut gs = game_state;
-    gs.score = 0; 
-    gs.wave_number = 1;
-    gs.enemy_count = 0;
-    gs.game_timer = Timer::from_seconds(3600.0, TimerMode::Once);
-    gs.game_timer.reset();
-    gs.game_timer.unpause();
-    gs.difficulty_timer = Timer::from_seconds(DIFFICULTY_INCREASE_INTERVAL_SECONDS, TimerMode::Repeating);
-    gs.difficulty_timer.reset();
+    // ResMut allows interior mutability, so we can directly modify fields.
+    game_state.score = 0; 
+    game_state.wave_number = 1;
+    game_state.enemy_count = 0;
+    game_state.game_timer = Timer::from_seconds(3600.0, TimerMode::Once);
+    game_state.game_timer.reset();
+    game_state.game_timer.unpause();
+    game_state.difficulty_timer = Timer::from_seconds(DIFFICULTY_INCREASE_INTERVAL_SECONDS, TimerMode::Repeating);
+    game_state.difficulty_timer.reset();
     
     enemy_spawn_timer.timer.set_duration(std::time::Duration::from_secs_f32(INITIAL_SPAWN_INTERVAL_SECONDS));
     enemy_spawn_timer.timer.reset();
@@ -131,7 +132,7 @@ fn reset_for_new_game_session(
         health.0 = crate::player::INITIAL_PLAYER_MAX_HEALTH;
         basic_weapon.fire_rate = Timer::from_seconds(0.5, TimerMode::Repeating);
         *aoe_aura = AoeAuraWeapon::default();
-        *orbiting_weapon = OrbitingProjectileWeapon::default(); // Reset orbiting weapon
+        *orbiting_weapon = OrbitingProjectileWeapon::default();
     }
 }
 
@@ -144,7 +145,7 @@ fn on_enter_ingame_state_actions(mut game_state: ResMut<GameState>) {
     }
 }
 
-fn on_enter_levelup_state_actions(mut game_state: ResMut<GameState>) {
+fn on_enter_pause_like_state_actions(mut game_state: ResMut<GameState>) { 
     if !game_state.game_timer.paused() {
         game_state.game_timer.pause();
     }
@@ -158,7 +159,7 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app
             .add_event::<UpgradeChosenEvent>()
-            .add_plugins(UpgradePlugin)
+            .add_plugins((UpgradePlugin, DebugMenuPlugin)) 
             .init_state::<AppState>()
             .init_resource::<GameConfig>()
             .init_resource::<GameState>()
@@ -183,16 +184,21 @@ impl Plugin for GamePlugin {
                 update_ingame_ui,
                 update_game_timer,
                 difficulty_scaling_system,
-            ).chain().run_if(in_state(AppState::InGame)))
+                global_debug_key_listener, 
+            ).chain().run_if(in_state(AppState::InGame).or_else(in_state(AppState::DebugUpgradeMenu))))
             .add_systems(OnExit(AppState::InGame), (
                 cleanup_session_entities, 
                 despawn_ui_by_marker::<InGameUI>
             ))
 
-            .add_systems(OnEnter(AppState::LevelUp), (setup_level_up_ui, on_enter_levelup_state_actions))
+            .add_systems(OnEnter(AppState::LevelUp), (setup_level_up_ui, on_enter_pause_like_state_actions))
             .add_systems(Update, handle_upgrade_choice_interaction.run_if(in_state(AppState::LevelUp)))
             .add_systems(Update, apply_chosen_upgrade.run_if(on_event::<UpgradeChosenEvent>()))
-            .add_systems(OnExit(AppState::LevelUp), despawn_ui_by_marker::<LevelUpUI>)
+            .add_systems(OnExit(AppState::LevelUp), (despawn_ui_by_marker::<LevelUpUI>, on_enter_ingame_state_actions)) 
+
+            .add_systems(OnEnter(AppState::DebugUpgradeMenu), on_enter_pause_like_state_actions)
+            .add_systems(OnExit(AppState::DebugUpgradeMenu), on_enter_ingame_state_actions)
+
 
             .add_systems(OnEnter(AppState::GameOver), setup_game_over_ui)
             .add_systems(Update, 
@@ -202,6 +208,25 @@ impl Plugin for GamePlugin {
             .add_systems(OnExit(AppState::GameOver), despawn_ui_by_marker::<GameOverUI>);
     }
 }
+
+fn global_debug_key_listener(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    current_app_state: Res<State<AppState>>,
+    mut next_app_state: ResMut<NextState<AppState>>,
+) {
+    if keyboard_input.just_pressed(KeyCode::F12) {
+        match current_app_state.get() {
+            AppState::InGame => {
+                next_app_state.set(AppState::DebugUpgradeMenu);
+            }
+            AppState::DebugUpgradeMenu => {
+                next_app_state.set(AppState::InGame);
+            }
+            _ => {} 
+        }
+    }
+}
+
 
 fn despawn_ui_by_marker<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) {
     for entity in query.iter() {
@@ -536,7 +561,6 @@ fn handle_upgrade_choice_interaction(
 
 fn apply_chosen_upgrade(
     mut events: EventReader<UpgradeChosenEvent>,
-    // Query now includes OrbitingProjectileWeapon
     mut player_query: Query<(&mut Player, &mut BasicWeapon, &mut Health, &mut AoeAuraWeapon, &mut OrbitingProjectileWeapon)>,
 ) {
     for event in events.read() {
@@ -578,7 +602,7 @@ fn apply_chosen_upgrade(
             UpgradeType::UnlockAoeAuraWeapon => {
                 if !aoe_aura_weapon.is_active {
                     aoe_aura_weapon.is_active = true;
-                } else { // If already unlocked, give a small boost
+                } else { 
                     aoe_aura_weapon.base_damage_per_tick += 1;
                     aoe_aura_weapon.current_radius *= 1.1;
                 }
@@ -604,12 +628,11 @@ fn apply_chosen_upgrade(
             UpgradeType::HealthRegeneration(amount) => {
                 player_stats.health_regen_rate += *amount;
             }
-            // Handle new Orbiting Seeds upgrades
             UpgradeType::UnlockOrbitingSeeds => {
                 if !orbiting_weapon.is_active {
                     orbiting_weapon.is_active = true;
-                    orbiting_weapon.num_orbiters = orbiting_weapon.num_orbiters.max(2); // Ensure at least 2 on unlock
-                } else { // Already unlocked, minor buff
+                    orbiting_weapon.num_orbiters = orbiting_weapon.num_orbiters.max(2);
+                } else { 
                     orbiting_weapon.num_orbiters += 1;
                     orbiting_weapon.damage_per_hit += 1;
                 }
@@ -695,7 +718,7 @@ fn game_over_input_system(
     mut commands: Commands,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut next_app_state: ResMut<NextState<AppState>>,
-    game_state: ResMut<GameState>, 
+    game_state: ResMut<GameState>, // Corrected: remove mut from binding
     enemy_spawn_timer: ResMut<EnemySpawnTimer>,
     max_enemies: ResMut<MaxEnemies>,
     player_query: Query<(&mut Player, &mut Health, &mut BasicWeapon, &mut AoeAuraWeapon, &mut OrbitingProjectileWeapon)>,

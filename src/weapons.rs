@@ -36,8 +36,9 @@ struct AoeAuraVisual;
 
 
 // --- Orbiting Projectiles Weapon ---
-const ORBITER_SPRITE_SIZE: Vec2 = Vec2::new(32.0, 32.0); // Increased size for debugging
-const ORBITER_DEBUG_COLOR: Color = Color::FUCHSIA; // Bright debug color
+const ORBITER_SPRITE_SIZE: Vec2 = Vec2::new(32.0, 32.0); 
+const ORBITER_DEBUG_COLOR: Color = Color::FUCHSIA; 
+const ORBITER_LOCAL_Z: f32 = 0.3; 
 
 #[derive(Component, Debug)]
 pub struct OrbitingProjectileWeapon {
@@ -136,13 +137,12 @@ fn update_aoe_aura_visual_system(
             } 
             
             if aura_weapon.visual_entity.is_none() {
-                // info!("Spawning AoE Aura Visual"); // Diagnostic log
                 let visual_entity = commands.spawn((
                     SpriteBundle {
                         texture: asset_server.load("sprites/aura_effect.png"),
                         sprite: Sprite {
                             custom_size: Some(Vec2::splat(1.0)), 
-                            color: Color::rgba(0.3, 1.0, 0.3, 0.25),
+                            color: Color::rgba(0.3, 1.0, 0.3, 0.5),
                             ..default()
                         },
                         transform: Transform {
@@ -150,7 +150,7 @@ fn update_aoe_aura_visual_system(
                             scale: Vec3::splat(target_scale), 
                             ..default()
                         },
-                        visibility: Visibility::Visible, // Explicitly visible
+                        visibility: Visibility::Visible,
                         ..default()
                     },
                     AoeAuraVisual,
@@ -161,7 +161,6 @@ fn update_aoe_aura_visual_system(
             }
         } else {
             if let Some(visual_entity) = aura_weapon.visual_entity.take() {
-                // info!("Despawning AoE Aura Visual due to inactive weapon"); // Diagnostic log
                 if visual_query.get_mut(visual_entity).is_ok() {
                      commands.entity(visual_entity).despawn_recursive();
                 }
@@ -175,8 +174,7 @@ fn cleanup_aura_visuals_on_weapon_remove(
     _removed_aura_weapons: RemovedComponents<AoeAuraWeapon>,
     _visual_query: Query<Entity, With<AoeAuraVisual>>,
 ) {
-    // This system can be expanded if direct component removal needs to trigger visual cleanup
-    // For now, the active flag in update_aoe_aura_visual_system and parent despawn handles most cases.
+    // ...
 }
 
 
@@ -186,10 +184,11 @@ fn manage_orbiters_system(
     asset_server: Res<AssetServer>,
     player_query: Query<(Entity, &OrbitingProjectileWeapon), (With<Player>, Changed<OrbitingProjectileWeapon>)>, 
     children_query: Query<&Children>,
-    orbiter_query: Query<Entity, With<Orbiter>>, // To check if a child is an orbiter
+    orbiter_query: Query<Entity, With<Orbiter>>, 
 ) {
+    // info!("[Weapons] manage_orbiters_system attempting to run.");
     for (player_entity, weapon_stats) in player_query.iter() {
-        // info!("Managing orbiters for player. Active: {}, Target count: {}", weapon_stats.is_active, weapon_stats.num_orbiters); // Log
+        // info!("[Weapons] Managing orbiters for player {:?}. Active: {}, Target count: {}", player_entity, weapon_stats.is_active, weapon_stats.num_orbiters);
 
         let mut current_orbiter_count = 0;
         if let Ok(children) = children_query.get(player_entity) {
@@ -199,11 +198,11 @@ fn manage_orbiters_system(
                 }
             }
         }
-        // info!("Current orbiter count: {}", current_orbiter_count); // Log
+        // info!("[Weapons] Current orbiter count for player {:?}: {}", player_entity, current_orbiter_count);
 
         if !weapon_stats.is_active {
             if current_orbiter_count > 0 {
-                // info!("Weapon inactive, despawning {} orbiters.", current_orbiter_count); // Log
+                // info!("[Weapons] Weapon inactive, despawning {} orbiters for player {:?}.", current_orbiter_count, player_entity);
                 if let Ok(children) = children_query.get(player_entity) {
                     for &child_entity in children.iter() {
                         if orbiter_query.get(child_entity).is_ok() {
@@ -217,20 +216,27 @@ fn manage_orbiters_system(
         
         if current_orbiter_count < weapon_stats.num_orbiters {
             let num_to_spawn = weapon_stats.num_orbiters - current_orbiter_count;
-            // info!("Spawning {} new orbiters.", num_to_spawn); // Log
+            // info!("[Weapons] Spawning {} new orbiters for player {:?}.", num_to_spawn, player_entity);
             for i in 0..num_to_spawn {
                 let angle_offset = (current_orbiter_count + i) as f32 * (2.0 * std::f32::consts::PI / weapon_stats.num_orbiters.max(1) as f32);
+
+                let initial_local_pos = Vec3::new(
+                    weapon_stats.orbit_radius * angle_offset.cos(),
+                    weapon_stats.orbit_radius * angle_offset.sin(), 
+                    ORBITER_LOCAL_Z
+                );
+                // info!("[Weapons] Spawning orbiter at initial local pos: {:?}", initial_local_pos);
 
                 let orbiter_entity = commands.spawn((
                     SpriteBundle {
                         texture: asset_server.load("sprites/guardian_seed.png"),
                         sprite: Sprite {
                             custom_size: Some(ORBITER_SPRITE_SIZE),
-                            color: ORBITER_DEBUG_COLOR, // Use debug color
+                            color: ORBITER_DEBUG_COLOR, 
                             ..default()
                         },
-                        transform: Transform::from_xyz(0.0, 0.0, 0.2), // Local Z, relative to player
-                        visibility: Visibility::Visible, // Explicitly visible
+                        transform: Transform::from_translation(initial_local_pos), 
+                        visibility: Visibility::Visible, 
                         ..default()
                     },
                     Orbiter {
@@ -238,14 +244,15 @@ fn manage_orbiters_system(
                         enemies_on_cooldown: Vec::new(),
                     },
                     Damage(weapon_stats.damage_per_hit),
-                    Name::new("GuardianSeedOrbiter"),
+                    Name::new(format!("GuardianSeedOrbiter_{}", i)),
                 )).id();
                 commands.entity(player_entity).add_child(orbiter_entity);
+                // info!("[Weapons] Spawned orbiter {:?} with angle {} and initial local_pos {:?}", orbiter_entity, angle_offset, initial_local_pos);
             }
         } 
         else if current_orbiter_count > weapon_stats.num_orbiters {
             let num_to_despawn = current_orbiter_count - weapon_stats.num_orbiters;
-            // info!("Despawning {} excess orbiters.", num_to_despawn); // Log
+            // info!("[Weapons] Despawning {} excess orbiters for player {:?}.", num_to_despawn, player_entity);
             if let Ok(children) = children_query.get(player_entity) {
                 let mut despawned_count = 0;
                 for &child_entity in children.iter() {
@@ -266,6 +273,7 @@ fn orbiter_movement_system(
     mut orbiter_query: Query<(&mut Orbiter, &mut Transform, &Parent)>,
     weapon_stats_query: Query<&OrbitingProjectileWeapon, With<Player>>,
 ) {
+    // info!("[Weapons] orbiter_movement_system running");
     if let Ok((player_entity, _player_transform)) = player_query.get_single() {
         if let Ok(weapon_stats) = weapon_stats_query.get(player_entity) { 
             if !weapon_stats.is_active || weapon_stats.num_orbiters == 0 {
@@ -280,13 +288,18 @@ fn orbiter_movement_system(
                     let mut local_pos = Vec3::ZERO;
                     local_pos.x = weapon_stats.orbit_radius * orbiter.angle.cos();
                     local_pos.y = weapon_stats.orbit_radius * orbiter.angle.sin();
-                    local_pos.z = 0.2; // Keep orbiter slightly in front of player (local Z)
+                    local_pos.z = ORBITER_LOCAL_Z; 
 
                     orbiter_transform.translation = local_pos;
-                    // info!("Orbiter at angle: {:.2}, local_pos: {:?}", orbiter.angle, local_pos); // Log
+                    // let global_orbiter_pos = _player_transform.translation + local_pos; 
+                    // info!("[Weapons] Orbiter {:?} new local_pos: {:?}, Approx Global Pos: {:?}", parent.get(), local_pos, global_orbiter_pos);
                 }
             }
+        } else {
+            // info!("[Weapons] Orbiter movement: No OrbitingProjectileWeapon found on player {:?}", player_entity);
         }
+    } else {
+        // info!("[Weapons] Orbiter movement: Player not found.");
     }
 }
 
@@ -311,7 +324,7 @@ fn orbiter_collision_system(
         });
 
         let orbiter_pos = orbiter_g_transform.translation().truncate();
-        let orbiter_radius = ORBITER_SPRITE_SIZE.x / 2.0; // Use current ORBITER_SPRITE_SIZE
+        let orbiter_radius = ORBITER_SPRITE_SIZE.x / 2.0;
 
         for (enemy_entity, enemy_g_transform, mut enemy_health, enemy_l_transform, enemy_data) in enemy_query.iter_mut() {
             if orbiter_data.enemies_on_cooldown.iter().any(|(e_id, _)| *e_id == enemy_entity) {

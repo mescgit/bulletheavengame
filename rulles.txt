@@ -1,0 +1,1 @@
+The rules of vibe coding are you are to only give code. if you need to create files specify the file name and location followed by whatever is required for the file. You are to never explain your process or the code unless asked. Never give half code or pieces of code and always post entire file of code unless asked. 
