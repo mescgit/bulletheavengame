@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use crate::{
-    player::Player,
-    enemy::Enemy, 
+    survivor::Survivor, // Changed
+    horror::Horror,     // Changed
     game::AppState, 
 };
 
@@ -30,7 +30,7 @@ pub struct LevelUpWaveEffect {
 
 fn spawn_level_up_wave_effect(
     mut commands: Commands,
-    player_query: Query<&Transform, With<Player>>,
+    player_query: Query<&Transform, With<Survivor>>, // Changed
     time: Res<Time>, 
     asset_server: Res<AssetServer>,
 ) {
@@ -44,7 +44,7 @@ fn spawn_level_up_wave_effect(
                 current_radius: 0.0,
             },
             SpriteBundle {
-                texture: asset_server.load("sprites/wave_effect.png"),
+                texture: asset_server.load("sprites/revelation_wave_placeholder.png"), // Changed
                 sprite: Sprite {
                     custom_size: Some(Vec2::new(1.0, 1.0)), 
                     color: Color::rgba(0.6, 0.6, 1.0, 0.6),
@@ -54,7 +54,7 @@ fn spawn_level_up_wave_effect(
                 visibility: Visibility::Visible,
                 ..default()
             },
-            Name::new("LevelUpWave"),
+            Name::new("RevelationWave"), // Changed
         ));
     }
 }
@@ -63,7 +63,7 @@ fn process_level_up_wave_effect(
     mut commands: Commands,
     time: Res<Time>,
     mut wave_query: Query<(Entity, &mut LevelUpWaveEffect, &mut Transform, &mut Sprite)>,
-    enemy_query: Query<(Entity, &GlobalTransform), With<Enemy>>,
+    horror_query: Query<(Entity, &GlobalTransform), With<Horror>>, // Changed enemy_query to horror_query and With<Enemy> to With<Horror>
 ) {
     for (wave_entity, mut wave, mut wave_transform, mut wave_sprite) in wave_query.iter_mut() {
         let time_since_spawn = time.elapsed_seconds() - wave.start_time;
@@ -77,12 +77,12 @@ fn process_level_up_wave_effect(
         wave_sprite.color.set_a(0.6 * (1.0 - progress * progress));
 
         if progress > 0.0 && progress < 1.0 { 
-            let mut _enemies_cleared_this_frame = 0; // Prefixed with underscore
-            for (enemy_entity, enemy_gtransform) in enemy_query.iter() {
-                let enemy_position = enemy_gtransform.translation().truncate();
-                if enemy_position.distance(wave.origin) < wave.current_radius {
-                    commands.entity(enemy_entity).despawn_recursive();
-                    _enemies_cleared_this_frame += 1;
+            let mut _horrors_cleared_this_frame = 0; // Renamed
+            for (horror_entity, horror_gtransform) in horror_query.iter() { // Changed
+                let horror_position = horror_gtransform.translation().truncate(); // Changed
+                if horror_position.distance(wave.origin) < wave.current_radius { // Changed
+                    commands.entity(horror_entity).despawn_recursive(); // Changed
+                    _horrors_cleared_this_frame += 1; // Renamed
                 }
             }
         }
