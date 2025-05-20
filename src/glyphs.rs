@@ -48,13 +48,13 @@ impl Plugin for GlyphsPlugin {
 fn populate_glyph_library(mut library: ResMut<GlyphLibrary>) {
     library.glyphs.push(GlyphDefinition {
         id: GlyphId(1),
-        name: "Glyph of Chaining Thoughts".to_string(),
+        name: "Glyph of Linked Nightmares".to_string(),
         description: "Your projectiles chain to 1 additional enemy.".to_string(),
         effect: GlyphEffectType::ProjectileChain { bounces: 1 },
     });
     library.glyphs.push(GlyphDefinition {
         id: GlyphId(2),
-        name: "Glyph of Amplified Whispers".to_string(),
+        name: "Glyph of Resonating Terror".to_string(),
         description: "Increases the damage of your area effects by 20%.".to_string(),
         effect: GlyphEffectType::IncreasedAoEDamage { percent_increase: 0.20 },
     });

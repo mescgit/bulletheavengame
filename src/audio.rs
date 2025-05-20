@@ -6,28 +6,28 @@ pub struct PlaySoundEvent(pub SoundEffect);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SoundEffect {
-    PlayerShoot,
-    EnemyHit,
-    EnemyDeath,
-    PlayerHit,
-    LevelUp,
-    XpCollect,
-    GameOver,
-    UpgradeChosen,
-    EnemyShoot, 
+    RitualCast,
+    HorrorHit,
+    HorrorDeath,
+    SurvivorHit,
+    Revelation,
+    SoulCollect,
+    MadnessConsumes,
+    OmenAccepted,
+    HorrorProjectile, 
 }
 
 #[derive(Resource)]
 pub struct GameAudioHandles {
-    pub shoot: Handle<AudioSource>,
-    pub enemy_hit: Handle<AudioSource>,
-    pub enemy_death: Handle<AudioSource>,
-    pub player_hit: Handle<AudioSource>,
-    pub level_up: Handle<AudioSource>,
-    pub xp_collect: Handle<AudioSource>,
-    pub game_over: Handle<AudioSource>,
-    pub upgrade_chosen: Handle<AudioSource>,
-    pub enemy_shoot: Handle<AudioSource>, 
+    pub ritual_cast: Handle<AudioSource>,
+    pub horror_hit: Handle<AudioSource>,
+    pub horror_death: Handle<AudioSource>,
+    pub survivor_hit: Handle<AudioSource>,
+    pub revelation: Handle<AudioSource>,
+    pub soul_collect: Handle<AudioSource>,
+    pub madness_consumes: Handle<AudioSource>,
+    pub omen_accepted: Handle<AudioSource>,
+    pub horror_projectile: Handle<AudioSource>,
     pub background_music: Handle<AudioSource>,
 }
 
@@ -49,16 +49,16 @@ impl Plugin for GameAudioPlugin {
 
 fn setup_audio_handles(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(GameAudioHandles {
-        shoot: asset_server.load("audio/shoot.ogg"),
-        enemy_hit: asset_server.load("audio/enemy_hit.ogg"),
-        enemy_death: asset_server.load("audio/enemy_death.ogg"),
-        player_hit: asset_server.load("audio/player_hit.ogg"),
-        level_up: asset_server.load("audio/level_up.ogg"),
-        xp_collect: asset_server.load("audio/xp_collect.ogg"),
-        game_over: asset_server.load("audio/game_over.ogg"),
-        upgrade_chosen: asset_server.load("audio/upgrade_chosen.ogg"),
-        enemy_shoot: asset_server.load("audio/enemy_shoot.ogg"), 
-        background_music: asset_server.load("audio/background_music.ogg"),
+        ritual_cast: asset_server.load("audio/ritual_cast_placeholder.ogg"),
+        horror_hit: asset_server.load("audio/horror_hit_placeholder.ogg"),
+        horror_death: asset_server.load("audio/horror_death_placeholder.ogg"),
+        survivor_hit: asset_server.load("audio/survivor_hit_placeholder.ogg"),
+        revelation: asset_server.load("audio/revelation_placeholder.ogg"),
+        soul_collect: asset_server.load("audio/soul_collect_placeholder.ogg"),
+        madness_consumes: asset_server.load("audio/madness_consumes_placeholder.ogg"),
+        omen_accepted: asset_server.load("audio/omen_accepted_placeholder.ogg"),
+        horror_projectile: asset_server.load("audio/horror_projectile_placeholder.ogg"), 
+        background_music: asset_server.load("audio/cyclopean_ruins_ambience_placeholder.ogg"),
     });
 }
 
@@ -69,15 +69,15 @@ fn play_sound_system(
 ) {
     for event in sound_events.read() {
         let source = match event.0 {
-            SoundEffect::PlayerShoot => audio_handles.shoot.clone(),
-            SoundEffect::EnemyHit => audio_handles.enemy_hit.clone(),
-            SoundEffect::EnemyDeath => audio_handles.enemy_death.clone(),
-            SoundEffect::PlayerHit => audio_handles.player_hit.clone(),
-            SoundEffect::LevelUp => audio_handles.level_up.clone(),
-            SoundEffect::XpCollect => audio_handles.xp_collect.clone(),
-            SoundEffect::GameOver => audio_handles.game_over.clone(),
-            SoundEffect::UpgradeChosen => audio_handles.upgrade_chosen.clone(),
-            SoundEffect::EnemyShoot => audio_handles.enemy_shoot.clone(),
+            SoundEffect::RitualCast => audio_handles.ritual_cast.clone(),
+            SoundEffect::HorrorHit => audio_handles.horror_hit.clone(),
+            SoundEffect::HorrorDeath => audio_handles.horror_death.clone(),
+            SoundEffect::SurvivorHit => audio_handles.survivor_hit.clone(),
+            SoundEffect::Revelation => audio_handles.revelation.clone(),
+            SoundEffect::SoulCollect => audio_handles.soul_collect.clone(),
+            SoundEffect::MadnessConsumes => audio_handles.madness_consumes.clone(),
+            SoundEffect::OmenAccepted => audio_handles.omen_accepted.clone(),
+            SoundEffect::HorrorProjectile => audio_handles.horror_projectile.clone(),
         };
         commands.spawn(AudioBundle {
             source,

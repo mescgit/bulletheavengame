@@ -40,7 +40,7 @@ fn setup_background(mut commands: Commands, asset_server: Res<AssetServer>) {
             
             let tile_entity = commands.spawn((
                 SpriteBundle {
-                    texture: asset_server.load("sprites/background_tile.png"),
+                    texture: asset_server.load("sprites/cyclopean_ruins_tile_placeholder.png"),
                     sprite: Sprite {
                         custom_size: Some(Vec2::splat(BACKGROUND_TILE_SIZE)),
                         ..default()
@@ -129,3 +129,5 @@ fn cleanup_background(mut commands: Commands, query: Query<Entity, With<Backgrou
         commands.entity(entity).despawn_recursive();
     }
 }
+//Placeholder for fleshy_landscape_tile_placeholder.png if used
+//The current code only uses one background tile, so background_tile2.png is not used.
